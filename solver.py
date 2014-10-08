@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import division
+#!/usr/bin/env python3
 
 import itertools
 
@@ -29,7 +28,7 @@ def solve(properties, constraints):
       print_frozenset(frozenset(value_pair for value_pair, known in knowledge.items() if known))
       break
 
-    for value_pair, is_correct in knowledge.items():
+    for value_pair, is_correct in list(knowledge.items()):
       if not is_correct: continue
       for value_a, value_b in forwards_and_backwards(value_pair):
         for other_value in value_to_possible_values[value_a]:
@@ -56,7 +55,7 @@ def solve(properties, constraints):
               knowledge[the_unknown_slot] = True
     report_progress("process of elimination")
 
-    for value_pair, is_correct in knowledge.items():
+    for value_pair, is_correct in list(knowledge.items()):
       if not is_correct: continue
       from_value_sets = tuple(value_to_possible_values[value] for value in value_pair)
       for value_set in properties:
