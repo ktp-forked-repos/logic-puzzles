@@ -18,12 +18,21 @@ def solve(properties, constraints):
     print("{}/{} {:05.2f}%: {}".format(done, total, percent, blurb))
   report_progress("init")
 
+  def print_winners():
+    value_to_family = {value: frozenset(value) for value_set in properties for value in value_set}
+    for (value_a, value_b), known in knowledge.items():
+      if not known: continue
+      family = frozenset(itertools.chain(value_to_family[value_a], value_to_family[value_b]))
+      value_to_family[value_a] = value_to_family[value_b] = family
+    families = frozenset(value_to_family.values())
+    print_frozenset(families)
+
   while True:
     print("============")
 
     previous_knowledge_magnitude = len(knowledge)
     if previous_knowledge_magnitude == len(all_value_pairs):
-      print_frozenset(frozenset(value_pair for value_pair, known in knowledge.items() if known))
+      print_winners()
       break
 
     for constraint in constraints:
@@ -111,21 +120,24 @@ def DirectConstraint(value_a, value_b):
 properties = frozenset([
   frozenset(["1", "2", "3"]),
   frozenset(["a", "b", "c"]),
+  frozenset(["x", "y", "z"]),
 ])
 
 constraints = frozenset([
-  # "a" and "b" are neighbors
-  VariableConstraint("a", "b", [
-    ("1", "2"),
-    ("2", "1"),
-    ("2", "3"),
-    ("3", "2"),
-  ]),
-  # "b" immediately preceeds "c"
-  VariableConstraint("b", "c", [
-    ("1", "2"),
-    ("2", "3"),
-  ]),
-  # DirectConstraint("a", "1"),
+  # VariableConstraint("a", "b", [
+  #   # "a" and "b" are neighbors
+  #   ("1", "2"),
+  #   ("2", "1"),
+  #   ("2", "3"),
+  #   ("3", "2"),
+  # ]),
+  # VariableConstraint("b", "c", [
+  #   # "b" immediately preceeds "c"
+  #   ("1", "2"),
+  #   ("2", "3"),
+  # ]),
+  DirectConstraint("a", "1"),
+  DirectConstraint("b", "y"),
+  DirectConstraint("3", "z"),
 ])
 solve(properties, constraints)
