@@ -17,16 +17,33 @@ def solve(properties, constraints):
     percent = 100*done/total
     print("{}/{} {:05.2f}%: {}".format(done, total, percent, blurb))
   report_progress("init")
-  for constraint in constraints:
-    knowledge[constraint] = True
-  report_progress("constraints")
 
   while True:
     print("============")
+
     previous_knowledge_magnitude = len(knowledge)
     if previous_knowledge_magnitude == len(all_value_pairs):
       print_frozenset(frozenset(value_pair for value_pair, known in knowledge.items() if known))
       break
+
+    for constraint in constraints:
+      the_scenario = None
+      for scenario in constraint:
+        for pair in scenario:
+          if knowledge.get(pair, None) == False:
+            break # this scenario doesn't work
+        else:
+          # this scenario works
+          if the_scenario == None:
+            the_scenario = scenario
+          else:
+            # multiple scenarios work. not helpful.
+            break
+      else:
+        if the_scenario != None:
+          for pair in the_scenario:
+            knowledge[pair] = True
+    report_progress("constraints")
 
     for value_pair, is_correct in list(knowledge.items()):
       if not is_correct: continue
@@ -85,15 +102,30 @@ def print_frozenset(s):
     return s
   print(deep_to_tuple(s))
 
+def VariableConstraint(value_a, value_b, pairing_options):
+  return frozenset([frozenset([frozenset([value_a, other_a]), frozenset([value_b, other_b])])
+                   for other_a, other_b in pairing_options])
+def DirectConstraint(value_a, value_b):
+  return frozenset([frozenset([frozenset([value_a, value_b])])])
+
 properties = frozenset([
   frozenset(["1", "2", "3"]),
   frozenset(["a", "b", "c"]),
-  frozenset(["x", "y", "z"]),
 ])
 
 constraints = frozenset([
-  frozenset(["a", "1"]),
-  frozenset(["b", "y"]),
-  frozenset(["3", "z"]),
+  # "a" and "b" are neighbors
+  VariableConstraint("a", "b", [
+    ("1", "2"),
+    ("2", "1"),
+    ("2", "3"),
+    ("3", "2"),
+  ]),
+  # "b" immediately preceeds "c"
+  VariableConstraint("b", "c", [
+    ("1", "2"),
+    ("2", "3"),
+  ]),
+  # DirectConstraint("a", "1"),
 ])
 solve(properties, constraints)
