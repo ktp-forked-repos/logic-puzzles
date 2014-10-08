@@ -102,7 +102,20 @@ def solve(properties, constraints):
     report_progress("transitivity")
 
     if len(knowledge) == previous_knowledge_magnitude:
+      # start guessing
       print("ambiguous")
+      for random_pair in all_value_pairs:
+        if random_pair in knowledge: continue
+        new_constraints = frozenset(itertools.chain(constraints, [DirectConstraint(*random_pair)]))
+        try:
+          print(">>>>>>>>>>>> guess: " + repr(random_pair))
+          solve(properties, new_constraints)
+        except Contradiction:
+          print("<<<<<<<<<<<< nope.avi")
+          continue
+        else:
+          print("<<<<<<<<<<<< got it")
+          break
       break
 
 def forwards_and_backwards(s):
@@ -128,26 +141,23 @@ def DirectConstraint(value_a, value_b):
 properties = frozenset([
   frozenset(["1", "2", "3"]),
   frozenset(["a", "b", "c"]),
-  frozenset(["x", "y", "z"]),
 ])
 
 constraints = frozenset([
-  # VariableConstraint("a", "b", [
-  #   # "a" and "b" are neighbors
-  #   ("1", "2"),
-  #   ("2", "1"),
-  #   ("2", "3"),
-  #   ("3", "2"),
-  # ]),
-  # VariableConstraint("b", "c", [
-  #   # "b" immediately preceeds "c"
-  #   ("1", "2"),
-  #   ("2", "3"),
-  # ]),
+  VariableConstraint("a", "b", [
+    # "a" and "b" are neighbors
+    ("1", "2"),
+    ("2", "1"),
+    ("2", "3"),
+    ("3", "2"),
+  ]),
+  VariableConstraint("b", "c", [
+    # "b" immediately preceeds "c"
+    ("1", "2"),
+    ("2", "3"),
+  ]),
   # DirectConstraint("a", "1"),
   # DirectConstraint("b", "y"),
   # DirectConstraint("3", "z"),
-  DirectConstraint("a", "1"),
-  DirectConstraint("b", "1"),
 ])
 solve(properties, constraints)
