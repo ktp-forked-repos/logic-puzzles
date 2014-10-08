@@ -16,15 +16,15 @@ def solve(properties, constraints):
   winning_claim_sets = set()
   def attempt(constraints):
     knowledge = {}
-    def report_progress(blurb):
+    def report_progress():
       done = len(knowledge)
       total = len(all_value_pairs)
       if total != 0:
         percent = 100*done/total
       else:
         percent = 0
-      print("{}/{} {:05.2f}%: {}".format(done, total, percent, blurb))
-    report_progress("init")
+      print("knowledge: {}/{} {:05.2f}%".format(done, total, percent))
+    report_progress()
 
     def claim(key, value):
       old_value = knowledge.get(key, None)
@@ -33,10 +33,11 @@ def solve(properties, constraints):
           raise Contradiction()
       else:
         knowledge[key] = value
-        # print("claim: " + repr(deep_to_tuple(key)) + " = " + repr(value))
+        if value:
+          print("claim: " + repr(deep_to_tuple(key)))
 
     def print_winners():
-      value_to_family = {value: frozenset(value) for value_set in properties for value in value_set}
+      value_to_family = {value: frozenset([value]) for value_set in properties for value in value_set}
       winning_claim_set = frozenset(pair for pair, known in knowledge.items() if known)
       for value_a, value_b in winning_claim_set:
         family = frozenset(itertools.chain(value_to_family[value_a], value_to_family[value_b]))
@@ -54,6 +55,7 @@ def solve(properties, constraints):
         print_winners()
         break
 
+      print("constraints:")
       for constraint in constraints:
         the_scenario = None
         for scenario in constraint:
@@ -74,16 +76,18 @@ def solve(properties, constraints):
           else:
             # none of the scenarios worked
             raise Contradiction()
-      report_progress("constraints")
+      report_progress()
 
+      print("plus sign exclusion:")
       for value_pair, is_correct in list(knowledge.items()):
         if not is_correct: continue
         for value_a, value_b in forwards_and_backwards(value_pair):
           for other_value in value_to_possible_values[value_a]:
             if value_a == other_value: continue
             claim(frozenset([other_value, value_b]),  False)
-      report_progress("plus sign exclusion")
+      report_progress()
 
+      print("process of elimination:")
       for value_set_pair in all_value_set_pairs:
         for value_set_a, value_set_b in forwards_and_backwards(value_set_pair):
           for pegged_value in value_set_a:
@@ -101,8 +105,9 @@ def solve(properties, constraints):
             else:
               if the_unknown_slot != None:
                 claim(the_unknown_slot, True)
-      report_progress("process of elimination")
+      report_progress()
 
+      print("transitivity:")
       for value_pair, is_correct in list(knowledge.items()):
         if not is_correct: continue
         from_value_sets = tuple(value_to_possible_values[value] for value in value_pair)
@@ -113,7 +118,7 @@ def solve(properties, constraints):
               try: known = knowledge[frozenset([value_b, value_c])]
               except KeyError: continue
               claim(frozenset([value_a, value_c]), known)
-      report_progress("transitivity")
+      report_progress()
 
       if len(knowledge) == previous_knowledge_magnitude:
         # start guessing
@@ -159,13 +164,23 @@ def deep_to_tuple(s):
 def VariableConstraint(value_a, value_b, pairing_options):
   return frozenset([frozenset([frozenset([value_a, other_a]), frozenset([value_b, other_b])])
                    for other_a, other_b in pairing_options])
+def NextTo(value_a, value_b):
+  return VariableConstraint(value_a, value_b, [
+    (0, 1), (1, 0),
+    (1, 2), (2, 1),
+    (2, 3), (3, 2),
+    (3, 4), (4, 3),
+  ])
 def DirectConstraint(value_a, value_b):
   return frozenset([frozenset([frozenset([value_a, value_b])])])
 
 properties = frozenset([
-  frozenset(["1", "2", "3"]),
-  frozenset(["a", "b", "c"]),
-  frozenset(["x", "y", "z"]),
+  frozenset([0,              1,         2,           3,           4]),
+  frozenset(["red",          "white",   "green",     "yellow",    "blue"]),
+  frozenset(["norwegian",    "brit",    "swede",     "dane",      "german"]),
+  frozenset(["tea",          "coffee",  "milk",      "soda",      "water"]),
+  frozenset(["dogs",         "birds",   "cats",      "horse",     "fish"]),
+  frozenset(["shuffleboard", "cricket", "badminton", "croquet",   "pingpong"]),
 ])
 
 constraints = frozenset([
@@ -181,8 +196,25 @@ constraints = frozenset([
   #   ("1", "2"),
   #   ("2", "3"),
   # ]),
-  # DirectConstraint("a", "1"),
-  # DirectConstraint("b", "y"),
-  # DirectConstraint("3", "z"),
+  DirectConstraint("red", "brit"),
+  DirectConstraint("swede", "dogs"),
+  DirectConstraint("dane", "tea"),
+  VariableConstraint("green", "white", [
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+  ]),
+  DirectConstraint("green", "coffee"),
+  DirectConstraint("birds", "shuffleboard"),
+  DirectConstraint("yellow", "cricket"),
+  DirectConstraint(2, "milk"),
+  DirectConstraint(0, "norwegian"),
+  NextTo("badminton", "cats"),
+  NextTo("horse", "cricket"),
+  DirectConstraint("soda", "croquet"),
+  DirectConstraint("german", "pingpong"),
+  NextTo("norwegian", "blue"),
+  NextTo("badminton", "water"),
 ])
 solve(properties, constraints)
