@@ -2,6 +2,8 @@
 
 import itertools
 
+class Contradiction(Exception):
+  pass
 def solve(properties, constraints):
   value_to_possible_values = {v: values
                               for values in properties
@@ -17,6 +19,12 @@ def solve(properties, constraints):
     percent = 100*done/total
     print("{}/{} {:05.2f}%: {}".format(done, total, percent, blurb))
   report_progress("init")
+
+  def claim(key, value):
+    old_value = knowledge.get(key, None)
+    if old_value != None and old_value != value:
+      raise Contradiction()
+    knowledge[key] = value
 
   def print_winners():
     value_to_family = {value: frozenset(value) for value_set in properties for value in value_set}
@@ -51,7 +59,7 @@ def solve(properties, constraints):
       else:
         if the_scenario != None:
           for pair in the_scenario:
-            knowledge[pair] = True
+            claim(pair, True)
     report_progress("constraints")
 
     for value_pair, is_correct in list(knowledge.items()):
@@ -59,7 +67,7 @@ def solve(properties, constraints):
       for value_a, value_b in forwards_and_backwards(value_pair):
         for other_value in value_to_possible_values[value_a]:
           if value_a == other_value: continue
-          knowledge[frozenset([other_value, value_b])] = False
+          claim(frozenset([other_value, value_b]),  False)
     report_progress("plus sign exclusion")
 
     for value_set_pair in all_value_set_pairs:
@@ -78,7 +86,7 @@ def solve(properties, constraints):
               break
           else:
             if the_unknown_slot != None:
-              knowledge[the_unknown_slot] = True
+              claim(the_unknown_slot, True)
     report_progress("process of elimination")
 
     for value_pair, is_correct in list(knowledge.items()):
@@ -90,7 +98,7 @@ def solve(properties, constraints):
           for value_c in value_set:
             try: known = knowledge[frozenset([value_b, value_c])]
             except KeyError: continue
-            knowledge[frozenset([value_a, value_c])] = known
+            claim(frozenset([value_a, value_c]), known)
     report_progress("transitivity")
 
     if len(knowledge) == previous_knowledge_magnitude:
@@ -136,8 +144,10 @@ constraints = frozenset([
   #   ("1", "2"),
   #   ("2", "3"),
   # ]),
+  # DirectConstraint("a", "1"),
+  # DirectConstraint("b", "y"),
+  # DirectConstraint("3", "z"),
   DirectConstraint("a", "1"),
-  DirectConstraint("b", "y"),
-  DirectConstraint("3", "z"),
+  DirectConstraint("b", "1"),
 ])
 solve(properties, constraints)
